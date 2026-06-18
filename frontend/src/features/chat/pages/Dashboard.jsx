@@ -462,8 +462,8 @@ const Dashboard = () => {
               onChange={(e) => setSelectedModel(e.target.value)}
               className="bg-neutral-800/50 border border-white/10 text-neutral-300 text-[12px] rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-cyan-500/50 appearance-none cursor-pointer hover:bg-neutral-800 transition-colors"
             >
-              <option value="gemini">Gemini 3.1 Flash</option>
-              <option value="mistral">Mistral Small</option>
+              <option value="llama-70b">Llama 3.3 70B</option>
+              <option value="llama-vision">Llama 3.2 Vision</option>
             </select>
           </div>
 

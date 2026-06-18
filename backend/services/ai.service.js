@@ -1,17 +1,16 @@
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { ChatMistralAI } from "@langchain/mistralai";
+import { ChatGroq } from '@langchain/groq';
 import { HumanMessage, SystemMessage, AIMessage, tool, createAgent } from "langchain";
 import { z } from "zod";
 import { searchInternet } from './internet.service.js';
 
-const geminiModel = new ChatGoogleGenerativeAI({
-  model: 'gemini-3.1-flash-lite',
-  apiKey: process.env.GEMINI_API_KEY,
+const groqVersatileModel = new ChatGroq({
+  model: 'llama-3.3-70b-versatile',
+  apiKey: process.env.GROQ_API_KEY,
 });
 
-const mistralModel = new ChatMistralAI({
-  model: "mistral-small-latest",
-  apiKey: process.env.MISTRAL_API_KEY,
+const groqVisionModel = new ChatGroq({
+  model: 'llama-3.2-11b-vision-preview',
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 const searchInternetTool = tool(
@@ -25,13 +24,13 @@ const searchInternetTool = tool(
   }
 );
 
-const geminiAgent = createAgent({
-  model: geminiModel,
+const versatileAgent = createAgent({
+  model: groqVersatileModel,
   tools: [searchInternetTool],
 });
 
-const mistralAgent = createAgent({
-  model: mistralModel,
+const visionAgent = createAgent({
+  model: groqVisionModel,
   tools: [searchInternetTool],
 });
 
@@ -91,16 +90,26 @@ function collectFromToolResult(raw, seen, sources, images) {
  * Streams the answer token-by-token via the onToken callback while collecting
  * the web sources/images from the tool calls. Returns the full text + sources.
  */
-export async function streamResponse({ messages, onToken, systemPrompt = "", modelName = "gemini", onStatus }) {
+export const streamResponse = async ({ messages, systemPrompt = "", modelName = "llama-70b", onToken, onStatus }) => {
+  const langchainMessages = toLangchainMessages(messages, systemPrompt);
+
+  // If the user attached images in the current prompt, we MUST force the vision model
+  const hasImages = messages.some(m => m.role === "user" && m.images && m.images.length > 0);
+  
+  let agent;
+  if (hasImages || modelName === "llama-vision") {
+    agent = visionAgent;
+  } else {
+    agent = versatileAgent;
+  }
+  
   let text = "";
   const seen = new Set();
   const sources = [];
   const images = [];
 
-  const agent = modelName === "mistral" ? mistralAgent : geminiAgent;
-
   const eventStream = agent.streamEvents(
-    { messages: toLangchainMessages(messages, systemPrompt) },
+    { messages: langchainMessages },
     { version: "v2" }
   );
 
@@ -134,8 +143,8 @@ export async function streamResponse({ messages, onToken, systemPrompt = "", mod
 
 // Kept for non-streaming use if you ever need it.
 export async function generateResponse(messages) {
-  const response = await agent.invoke({ messages: toLangchainMessages(messages) });
-  const text = response.messages[response.messages.length - 1].text;
+  const response = await versatileAgent.invoke({ messages: toLangchainMessages(messages) });
+  const text = response.messages[response.messages.length - 1].content;
 
   const seen = new Set();
   const sources = [];
@@ -146,29 +155,11 @@ export async function generateResponse(messages) {
   return { text, sources, images };
 }
 
-export async function generateChatTitle(message) {
-  const response = await mistralModel.invoke([
-    new SystemMessage(`You are an AI assistant specialized in creating concise, meaningful titles for user conversations.
-
-### Your Task
-Analyze the user's first message and generate a title that accurately reflects the main topic, question, or intent.
-
-### Title Generation Guidelines
-
-1. **Length**: Keep the title short — 2 to 7 words maximum.
-2. **Clarity**: The title should be clear and easy to understand at a glance.
-3. **Relevance**: It must accurately represent the core subject of the conversation.
-4. **Style**:
-   - Use natural, conversational language.
-   - Do NOT use ALL CAPS, excessive punctuation, or emojis.
-   - Avoid generic phrases like "Chat," "Conversation," or "Query."
-   - Do NOT add quotation marks or special formatting.
-5. **Focus**: If the user asks a question, the title should reflect the question. If they state a topic, the title should reflect the topic.
-
-### Output Format
-Return ONLY the title text. Do not include any additional explanation, labels, or metadata.
-        `),
+export const generateChatTitle = async (message) => {
+  const model = new ChatGroq({ model: 'llama-3.3-70b-versatile', apiKey: process.env.GROQ_API_KEY });
+  const response = await model.invoke([
+    new SystemMessage("You are an expert copywriter. Given the user's first message, generate a 2 to 4 word title for the chat. Do not include quotes or punctuation."),
     new HumanMessage(message)
   ]);
-  return response.text;
-}
+  return response.content;
+};
