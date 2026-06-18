@@ -31,3 +31,8 @@ export async function getMe() {
   const response = await authApi.get('/get-me');
   return response.data;
 }
+
+export async function updateSystemPrompt({ systemPrompt }) {
+  const response = await authApi.patch('/system-prompt', { systemPrompt });
+  return response.data;
+}

@@ -20,7 +20,8 @@ export function initSocket(httpServer) {
         cors: {
             origin: ["http://localhost:5173", "http://localhost:5174", "https://inquiro-ten-roan.vercel.app", process.env.FRONTEND_URL].filter(Boolean),
             credentials: true,
-        }
+        },
+        maxHttpBufferSize: 5e7 // 50MB limit for large base64 images over websockets
     });
 
     // Authenticate every socket from the JWT cookie sent during the handshake.

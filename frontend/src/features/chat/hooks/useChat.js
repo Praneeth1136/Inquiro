@@ -3,7 +3,7 @@ import { sendMessage, getChats, getMessages, deleteChat, renameChat } from "../s
 import {
     setChats, setCurrentChatId, removeChat, setIsLoading, setOpeningChat, setError,
     addNewMessage, CreateNewChat, addMessages,
-    startStreaming, appendToken, finishStreaming, updateChatTitle,
+    startStreaming, appendToken, finishStreaming, updateChatTitle, setChatStatus
 } from "../chat.Slice";
 import { useDispatch } from "react-redux";
 
@@ -22,10 +22,10 @@ export const useChat = () => {
 
         bind("connect", () => console.log("Socket connected:", socket.id));
 
-        bind("chat:start", ({ chatId, title, isNew, userMessage }) => {
+        bind("chat:start", ({ chatId, title, isNew, userMessage, images }) => {
             if (isNew) dispatch(CreateNewChat({ chatId, title }));
             dispatch(setCurrentChatId(chatId));
-            dispatch(addNewMessage({ chatId, content: userMessage, role: "user" }));
+            dispatch(addNewMessage({ chatId, content: userMessage, role: "user", images }));
             dispatch(startStreaming({ chatId }));
         });
 
@@ -37,6 +37,10 @@ export const useChat = () => {
             dispatch(updateChatTitle({ chatId, title }));
         });
 
+        bind("chat:status", ({ status }) => {
+            dispatch(setChatStatus(status));
+        });
+
         bind("chat:complete", ({ chatId, message }) => {
             dispatch(finishStreaming({
                 chatId,
@@ -44,6 +48,7 @@ export const useChat = () => {
                 sources: message?.sources,
                 images: message?.images,
             }));
+            dispatch(setChatStatus(null));
             dispatch(setIsLoading(false));
         });
 
@@ -54,14 +59,15 @@ export const useChat = () => {
         });
     }
 
-    async function handleSendMessage({ message, chatId }) {
+    async function handleSendMessage({ message, chatId, modelName, images = [] }) {
         dispatch(setIsLoading(true));
+        dispatch(setChatStatus("Sending..."));
         try {
-            // POST is just the trigger; the answer arrives over the socket.
-            await sendMessage(message, chatId);
+            await sendMessage({ message, chatId, modelName, images });
         } catch (err) {
             dispatch(setError(err?.response?.data?.message || "Failed to send message"));
             dispatch(setIsLoading(false));
+            dispatch(setChatStatus(null));
         }
     }
 

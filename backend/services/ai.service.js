@@ -25,22 +25,42 @@ const searchInternetTool = tool(
   }
 );
 
-const agent = createAgent({
+const geminiAgent = createAgent({
   model: geminiModel,
   tools: [searchInternetTool],
 });
 
-const SYSTEM_PROMPT = `You are a helpful assistant. Search the internet for current information using the searchInternet tool when needed. 
+const mistralAgent = createAgent({
+  model: mistralModel,
+  tools: [searchInternetTool],
+});
+
+const BASE_SYSTEM_PROMPT = `You are a helpful assistant. Search the internet for current information using the searchInternet tool when needed. 
       
-      If you don't find the answer in the search results, respond with your own knowledge
+      If you don't find the answer in the search results, respond with your own knowledge.
       `;
 
-const toLangchainMessages = (messages) => [
-  new SystemMessage(SYSTEM_PROMPT),
-  ...messages.map((msg) =>
-    msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
-  ),
-];
+const toLangchainMessages = (messages, customPrompt = "") => {
+  const fullSystem = customPrompt ? `${BASE_SYSTEM_PROMPT}\n\nUser's Custom Instructions:\n${customPrompt}` : BASE_SYSTEM_PROMPT;
+  return [
+    new SystemMessage(fullSystem),
+    ...messages.map((msg) => {
+      if (msg.role === "user") {
+        if (msg.images && msg.images.length > 0) {
+          return new HumanMessage({
+            content: [
+              { type: "text", text: msg.content },
+              ...msg.images.map(img => ({ type: "image_url", image_url: { url: img } }))
+            ]
+          });
+        }
+        return new HumanMessage(msg.content);
+      } else {
+        return new AIMessage(msg.content);
+      }
+    }),
+  ];
+};
 
 // Pull links + images out of a Tavily tool-result string.
 function collectFromToolResult(raw, seen, sources, images) {
@@ -71,18 +91,23 @@ function collectFromToolResult(raw, seen, sources, images) {
  * Streams the answer token-by-token via the onToken callback while collecting
  * the web sources/images from the tool calls. Returns the full text + sources.
  */
-export async function streamResponse(messages, onToken) {
+export async function streamResponse({ messages, onToken, systemPrompt = "", modelName = "gemini", onStatus }) {
   let text = "";
   const seen = new Set();
   const sources = [];
   const images = [];
 
+  const agent = modelName === "mistral" ? mistralAgent : geminiAgent;
+
   const eventStream = agent.streamEvents(
-    { messages: toLangchainMessages(messages) },
+    { messages: toLangchainMessages(messages, systemPrompt) },
     { version: "v2" }
   );
 
   for await (const ev of eventStream) {
+    if (ev.event === "on_tool_start") {
+      if (onStatus) onStatus("Searching the web...");
+    }
     if (ev.event === "on_chat_model_stream") {
       const content = ev.data?.chunk?.content;
       let piece = "";
@@ -96,12 +121,14 @@ export async function streamResponse(messages, onToken) {
         onToken(piece);
       }
     } else if (ev.event === "on_tool_end") {
+      if (onStatus) onStatus("Reading sources...");
       const out = ev.data?.output;
       const raw = typeof out === "string" ? out : out?.content;
       collectFromToolResult(raw, seen, sources, images);
     }
   }
 
+  if (onStatus) onStatus(null); // clear status
   return { text, sources, images };
 }
 

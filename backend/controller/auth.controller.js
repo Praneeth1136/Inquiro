@@ -374,3 +374,26 @@ export async function logout(req, res) {
         success: true,
     });
 }
+
+export async function updateSystemPrompt(req, res) {
+    const userId = req.user?.id;
+    const { systemPrompt } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ message: "Authentication required", success: false });
+    }
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+        return res.status(404).json({ message: "User not found", success: false });
+    }
+
+    user.systemPrompt = systemPrompt || "";
+    await user.save();
+
+    res.status(200).json({
+        message: "System prompt updated successfully",
+        success: true,
+        systemPrompt: user.systemPrompt
+    });
+}

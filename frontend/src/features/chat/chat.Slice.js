@@ -7,7 +7,8 @@ const chatSlice = createSlice({
         currentChatId: null,
         isLoading: false,      // assistant is currently responding
         isOpeningChat: false,  // fetching messages for an existing chat
-        error: null
+        error: null,
+        chatStatus: null       // string indicating what the AI is doing (e.g. "Searching the web...")
     },
     reducers: {
         CreateNewChat: (state, action) => {
@@ -70,6 +71,9 @@ const chatSlice = createSlice({
             const { chatId, title } = action.payload;
             if (state.chats[chatId]) state.chats[chatId].title = title;
         },
+        setChatStatus: (state, action) => {
+            state.chatStatus = action.payload;
+        },
 
         setChats: (state, action) => {
             state.chats = action.payload;
@@ -102,6 +106,7 @@ export const {
     appendToken,
     finishStreaming,
     updateChatTitle,
+    setChatStatus,
     setChats,
     setCurrentChatId,
     removeChat,

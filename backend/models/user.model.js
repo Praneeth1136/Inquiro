@@ -25,6 +25,11 @@ const userSchema = new mongoose.Schema(
             type:Boolean,
             default:false,
         },
+        systemPrompt: {
+            type: String,
+            default: "",
+            trim: true
+        }
     },
     {timestamps:true}
 );

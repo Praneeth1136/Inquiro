@@ -1,6 +1,9 @@
-import { useSelector } from 'react-redux';
+import { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { setUser } from '../auth.Slice';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/userAuth';
+import { updateSystemPrompt } from '../services/auth.api';
 import { useChat } from '../../chat/hooks/useChat';
 
 const Logo = ({ size = 22 }) => (
@@ -22,6 +25,7 @@ const formatDate = (d) => {
 
 export default function Settings() {
   const user = useSelector((state) => state.auth.user);
+  const dispatch = useDispatch();
   const { handleLogout } = useAuth();
   const { handleDeleteAllChats } = useChat();
   const navigate = useNavigate();
@@ -33,6 +37,24 @@ export default function Settings() {
 
   // getMe may return the user directly or nested as { user }
   const me = user?.user || user || {};
+
+  const [systemPrompt, setSystemPrompt] = useState(me?.systemPrompt || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const onSaveSystemPrompt = async () => {
+    setIsSaving(true);
+    try {
+      const res = await updateSystemPrompt({ systemPrompt });
+      dispatch(setUser({ ...user, systemPrompt: res.systemPrompt }));
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-neutral-200 font-[Inter,sans-serif] antialiased relative overflow-hidden">
@@ -93,6 +115,30 @@ export default function Settings() {
               <span className="text-[13px] text-neutral-500">Member since</span>
               <span className="text-[13px] text-neutral-200">{formatDate(me?.createdAt)}</span>
             </div>
+          </div>
+        </section>
+
+        {/* Custom Instructions */}
+        <section className="mt-4 sm:mt-6 rounded-2xl border border-white/10 bg-neutral-900/50 p-4 sm:p-6 animate-fade-in-up" style={{animationDelay: '0.12s'}}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[13px] font-semibold text-neutral-300">Custom Instructions</p>
+            {saveSuccess && <span className="text-[11px] text-emerald-400 font-medium">Saved!</span>}
+          </div>
+          <p className="text-[12px] text-neutral-500 mb-4">What would you like the AI to know about you to provide better responses? (e.g. "Always respond in Spanish", "Keep answers under 2 sentences")</p>
+          <textarea
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
+            placeholder="Enter your custom instructions here..."
+            className="w-full h-32 bg-black/20 border border-white/10 rounded-xl p-3 text-[13px] text-neutral-200 placeholder-neutral-600 outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all resize-none mb-3"
+          />
+          <div className="flex justify-end">
+            <button
+              onClick={onSaveSystemPrompt}
+              disabled={isSaving}
+              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? 'Saving...' : 'Save Instructions'}
+            </button>
           </div>
         </section>
 

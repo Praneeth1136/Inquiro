@@ -74,6 +74,11 @@ const Dashboard = () => {
   const isOpeningChat = useSelector((state) => state.chat.isOpeningChat);
   const chatError = useSelector((state) => state.chat.error);
   const chats = useSelector((state) => state.chat.chats);
+  const chatStatus = useSelector((state) => state.chat.chatStatus);
+
+  const [selectedModel, setSelectedModel] = useState('gemini');
+  const [attachedImages, setAttachedImages] = useState([]);
+  const fileInputRef = useRef(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -288,12 +293,40 @@ const Dashboard = () => {
     }
   };
 
+  const onDownloadChat = () => {
+    if (!messages.length) { showToast('No messages to export'); return; }
+    let content = `# ${currentChat?.title || 'Chat Export'}\n\n`;
+    messages.forEach(m => {
+      content += `### ${m.role === 'user' ? 'You' : 'AI'}\n${m.content}\n\n`;
+    });
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentChat?.title || 'chat'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      setAttachedImages((prev) => [...prev, evt.target.result]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const send = async (text) => {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
     setInput('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
-    await handleSendMessage({ message: trimmed, chatId: currentChatId });
+    const imagesToPass = [...attachedImages];
+    setAttachedImages([]);
+    await handleSendMessage({ message: trimmed, chatId: currentChatId, modelName: selectedModel, images: imagesToPass });
   };
   const onSubmit = (e) => { e.preventDefault(); send(input); };
 
@@ -423,9 +456,22 @@ const Dashboard = () => {
           </div>
 
           {/* Tabs completely removed, sources rendered inline */}
-          <div className="flex items-center gap-0.5 sm:gap-1"></div>
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <select 
+              value={selectedModel} 
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="bg-neutral-800/50 border border-white/10 text-neutral-300 text-[12px] rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-cyan-500/50 appearance-none cursor-pointer hover:bg-neutral-800 transition-colors"
+            >
+              <option value="gemini">Gemini 3.1 Flash</option>
+              <option value="mistral">Mistral Small</option>
+            </select>
+          </div>
 
           <div className="flex items-center gap-2 min-w-0">
+            <button onClick={onDownloadChat} aria-label="Export Markdown" className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[13px] font-medium text-neutral-400 hover:text-neutral-200 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-colors shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span className="hidden sm:inline">Export</span>
+            </button>
             <button onClick={onShare} aria-label="Share answer" className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[13px] font-medium text-neutral-400 hover:text-neutral-200 border border-white/10 hover:border-white/20 hover:bg-white/5 transition-colors shrink-0">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
               <span className="hidden sm:inline">Share</span>
@@ -468,8 +514,15 @@ const Dashboard = () => {
                 {messages.map((msg, idx) =>
                   msg.role === 'user' ? (
                     <div key={idx} className={`flex justify-end ${idx > 0 ? 'mt-6 sm:mt-8' : ''}`}>
-                      <div className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl rounded-br-md bg-cyan-600/90 text-white text-[14px] sm:text-[15px] max-w-[85%] sm:max-w-[75%] shadow-md shadow-cyan-500/10">
-                        {msg.content}
+                      <div className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl rounded-br-md bg-cyan-600/90 text-white text-[14px] sm:text-[15px] max-w-[85%] sm:max-w-[75%] shadow-md shadow-cyan-500/10 flex flex-col gap-2">
+                        {msg.images?.length > 0 && (
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            {msg.images.map((img, i) => (
+                              <img key={i} src={img} alt="attached" className="max-w-[200px] max-h-[200px] rounded-lg object-contain border border-white/10 bg-black/20" />
+                            ))}
+                          </div>
+                        )}
+                        <span>{msg.content}</span>
                       </div>
                     </div>
                   ) : (
@@ -526,7 +579,7 @@ const Dashboard = () => {
                       </div>
                     )
                   )}
-                  {isLoading && !isStreaming && <div className="flex justify-start mt-4"><div className="flex gap-3"><div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-emerald-600 flex items-center justify-center shrink-0 shadow-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg></div><Dots /></div></div>}
+                  {isLoading && !isStreaming && <div className="flex justify-start mt-4"><div className="flex gap-3"><div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-emerald-600 flex items-center justify-center shrink-0 shadow-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg></div>{chatStatus ? <span className="text-[14px] text-neutral-400 mt-1">{chatStatus}</span> : <Dots />}</div></div>}
                   <div ref={messagesEndRef} />
                 </div>
               )
@@ -535,7 +588,23 @@ const Dashboard = () => {
         {/* INPUT */}
         <div className="relative z-10 shrink-0 px-3 sm:px-6 pb-4 sm:pb-5 pt-2">
           <div className="max-w-3xl mx-auto">
+            {attachedImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2 px-1">
+                {attachedImages.map((img, i) => (
+                  <div key={i} className="relative group">
+                    <img src={img} alt="attached" className="h-12 w-12 object-cover rounded-lg border border-white/10" />
+                    <button onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))} className="absolute -top-1.5 -right-1.5 bg-neutral-800 text-neutral-300 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-lg">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <form onSubmit={onSubmit} className="flex items-end bg-neutral-900/80 backdrop-blur border border-white/10 rounded-2xl px-3 sm:px-4 py-2 sm:py-2 shadow-xl shadow-black/30 focus-within:border-cyan-500/50 focus-within:ring-4 focus-within:ring-cyan-500/10 transition-all">
+              <input type="file" ref={fileInputRef} onChange={onFileChange} accept="image/*" className="hidden" />
+              <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Attach image" className="mb-0.5 sm:mb-1 mr-1 sm:mr-2 p-1.5 sm:p-2 rounded-xl transition-colors shrink-0 text-neutral-500 hover:text-neutral-300 hover:bg-white/5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
               <textarea
                 ref={inputRef}
                 value={input}

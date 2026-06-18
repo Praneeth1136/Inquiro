@@ -1,3 +1,4 @@
+import userModel from "../models/user.model.js";
 import { streamResponse, generateChatTitle } from "../services/ai.service.js";
 import chatModel from "../models/chat.model.js";
 import messageModel from "../models/message.model.js";
@@ -5,7 +6,7 @@ import { getIO } from "../src/sockets/server.socket.js";
 
 export async function sendMessage(req, res) {
     const userId = req.user.id;
-    const { message, chat: bodyChat, chatId } = req.body;
+    const { message, chat: bodyChat, chatId, modelName = "gemini", images = [] } = req.body;
     const activeChatId = bodyChat || chatId;
 
     let chat = null;
@@ -21,9 +22,12 @@ export async function sendMessage(req, res) {
         }
     }
 
+    const user = await userModel.findById(userId);
+    const systemPrompt = user?.systemPrompt || "";
+
     const chatIdStr = chat._id.toString();
 
-    await messageModel.create({ chat: chat._id, content: message, role: "user" });
+    await messageModel.create({ chat: chat._id, content: message, role: "user", images });
 
     const io = getIO();
 
@@ -33,9 +37,10 @@ export async function sendMessage(req, res) {
         title: chat.title,
         isNew,
         userMessage: message,
+        images,
     });
 
-    // Respond to the HTTP request right away — the rest happens over the socket.
+    // Respond to the HTTP request right away
     res.json({ success: true, chatId: chatIdStr });
 
     // Generate a real title in the background for new chats.
@@ -52,8 +57,12 @@ export async function sendMessage(req, res) {
     try {
         const history = await messageModel.find({ chat: chat._id });
 
-        const { text, sources, images } = await streamResponse(history, (token) => {
-            io.to(userId).emit("chat:token", { chatId: chatIdStr, token });
+        const { text, sources, images: aiImages } = await streamResponse({
+            messages: history,
+            systemPrompt,
+            modelName,
+            onToken: (token) => io.to(userId).emit("chat:token", { chatId: chatIdStr, token }),
+            onStatus: (status) => io.to(userId).emit("chat:status", { chatId: chatIdStr, status }),
         });
 
         const aiMessage = await messageModel.create({
@@ -61,7 +70,7 @@ export async function sendMessage(req, res) {
             content: text,
             role: "ai",
             sources: sources || [],
-            images: images || [],
+            images: aiImages || [],
         });
 
         io.to(userId).emit("chat:complete", {
