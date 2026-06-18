@@ -31,3 +31,8 @@ export const renameChat = async (chatId, title) => {
     const response = await api.patch(`/api/chats/rename/${chatId}`, { title });
     return response.data;
 };
+
+export const deleteAllChats = async () => {
+    const response = await api.delete('/api/chats/delete-all');
+    return response.data;
+};

@@ -2,9 +2,20 @@
 @plugin "@tailwindcss/typography";
 
 @layer base {
-  /* ─── Smooth scrolling ─── */
+  /* ─── Full-bleed dark background — no white gaps ─── */
+  html, body, #root {
+    height: 100%;
+    background-color: #0a0a0a; /* neutral-950 */
+  }
+
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Prevent horizontal overflow on all devices */
+  body {
+    overflow-x: hidden;
+    margin: 0;
   }
 
   /* ─── All buttons: pointer + tactile press ─── */
@@ -33,19 +44,21 @@
                 background-color 0.2s ease;
   }
 
-  /* ─── Styled scrollbar (webkit) ─── */
-  ::-webkit-scrollbar {
-    width: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.15);
+  /* ─── Styled scrollbar (webkit, desktop only) ─── */
+  @media (min-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
   }
 }
 
@@ -109,5 +122,14 @@
     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
     background-size: 200% 100%;
     animation: shimmer 2s ease-in-out infinite;
+  }
+
+  /* Hide scrollbar but keep scroll functionality (ChatGPT style) */
+  .scrollbar-hidden {
+    -ms-overflow-style: none;  /* IE/Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;             /* Chrome/Safari/Opera */
   }
 }

@@ -115,13 +115,30 @@ export async function deleteChat(req, res) {
 
     const chat = await chatModel.findOne({ _id: chatId, user: req.user.id });
     if (!chat) {
-        return res.status(404).json({ message: "chat not found", success: false });
+        return res.status(404).json({ message: "Chat not found", success: false });
     }
 
     await messageModel.deleteMany({ chat: chatId });
-    await chatModel.deleteOne({ _id: chatId, user: req.user.id });
+    await chatModel.deleteOne({ _id: chatId });
 
-    res.json({ message: "chat deleted successfully", success: true });
+    res.status(200).json({
+        message: "chat deleted successfully",
+        success: true
+    });
+}
+
+export async function deleteAllChats(req, res) {
+    const userId = req.user.id;
+    const chats = await chatModel.find({ user: userId });
+    const chatIds = chats.map(c => c._id);
+
+    await messageModel.deleteMany({ chat: { $in: chatIds } });
+    await chatModel.deleteMany({ user: userId });
+
+    res.status(200).json({
+        message: "All chats deleted successfully",
+        success: true
+    });
 }
 
 export async function renameChat(req, res) {

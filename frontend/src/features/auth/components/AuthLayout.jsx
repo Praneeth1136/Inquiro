@@ -103,13 +103,13 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
       </aside>
 
       {/* ─────────── Right form panel ─────────── */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12 relative">
+      <main className="flex-1 flex items-center justify-center px-5 sm:px-6 py-10 sm:py-12 relative">
         {/* subtle glow on mobile where the left panel is hidden */}
         <div className="pointer-events-none absolute inset-0 lg:hidden">
           <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-cyan-500/10 blur-[100px]" />
         </div>
 
-        <div className="relative w-full max-w-sm animate-fade-in">
+        <div className="relative w-full max-w-sm animate-fade-in px-1 sm:px-0">
           <Link to="/" className="flex lg:hidden items-center gap-2 mb-8 justify-center">
             <Logo size={24} />
             <span className="text-lg font-semibold text-white tracking-tight">Inquiro</span>

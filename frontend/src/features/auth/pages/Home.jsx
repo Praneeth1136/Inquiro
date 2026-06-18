@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Logo = ({ size = 26 }) => (
@@ -16,7 +16,14 @@ const DEMO_SOURCES = ['nasa.gov', 'wikipedia.org', 'nature.com', 'space.com'];
 
 export default function Home() {
   const [query, setQuery] = useState('');
+  const [mobileNav, setMobileNav] = useState(false);
   const navigate = useNavigate();
+
+  // Lock body scroll when mobile nav is open
+  useEffect(() => {
+    document.body.style.overflow = mobileNav ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileNav]);
 
   const onSubmit = (e) => {
     e.preventDefault();
@@ -34,10 +41,10 @@ export default function Home() {
 
       {/* ─────────── NAV ─────────── */}
       <header className="sticky top-0 z-30 backdrop-blur-md bg-neutral-950/70 border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Logo />
-            <span className="text-lg font-semibold text-white tracking-tight">Inquiro</span>
+            <span className="text-base sm:text-lg font-semibold text-white tracking-tight">Inquiro</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-8 text-[14px] text-neutral-400">
@@ -47,15 +54,47 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link to="/login" className="px-4 py-2 rounded-lg text-[14px] font-medium text-neutral-300 hover:text-white hover:bg-white/5 transition-colors">
+            <Link to="/login" className="hidden sm:inline-block px-4 py-2 rounded-lg text-[14px] font-medium text-neutral-300 hover:text-white hover:bg-white/5 transition-colors">
               Sign in
             </Link>
-            <Link to="/register" className="px-4 py-2 rounded-lg text-[14px] font-semibold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-500/20">
+            <Link to="/register" className="hidden sm:inline-block px-4 py-2 rounded-lg text-[14px] font-semibold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-500/20">
               Get started
             </Link>
+            {/* Mobile hamburger */}
+            <button onClick={() => setMobileNav(true)} aria-label="Open menu" className="md:hidden p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            </button>
           </div>
         </div>
       </header>
+
+      {/* ─── Mobile nav overlay ─── */}
+      {mobileNav && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileNav(false)} />
+          <div className="absolute top-0 right-0 w-64 h-full bg-neutral-900 border-l border-white/10 p-6 flex flex-col gap-6 animate-slide-down">
+            <div className="flex items-center justify-between">
+              <span className="text-base font-semibold text-white">Menu</span>
+              <button onClick={() => setMobileNav(false)} aria-label="Close menu" className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+            <nav className="flex flex-col gap-4 text-[15px] text-neutral-300">
+              <a href="#features" onClick={() => setMobileNav(false)} className="hover:text-white transition-colors">Features</a>
+              <a href="#how" onClick={() => setMobileNav(false)} className="hover:text-white transition-colors">How it works</a>
+              <a href="#faq" onClick={() => setMobileNav(false)} className="hover:text-white transition-colors">FAQ</a>
+            </nav>
+            <div className="flex flex-col gap-3 mt-auto">
+              <Link to="/login" onClick={() => setMobileNav(false)} className="w-full text-center px-4 py-2.5 rounded-lg text-[14px] font-medium text-neutral-300 border border-white/10 hover:bg-white/5 transition-colors">
+                Sign in
+              </Link>
+              <Link to="/register" onClick={() => setMobileNav(false)} className="w-full text-center px-4 py-2.5 rounded-lg text-[14px] font-semibold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-500/20">
+                Get started
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─────────── HERO ─────────── */}
       <section className="relative overflow-hidden">
@@ -74,13 +113,13 @@ export default function Home() {
           />
         </div>
 
-        <div className="max-w-3xl mx-auto px-6 pt-24 pb-12 text-center">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-10 sm:pb-12 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 mb-8 rounded-full border border-white/10 bg-white/5 text-[12px] text-neutral-300">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             Answers, not just links
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-semibold text-white tracking-tight leading-[0.95]">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-semibold text-white tracking-tight leading-[0.95]">
             Where{' '}
             <span className="bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
               knowledge
@@ -88,24 +127,24 @@ export default function Home() {
             <br />begins.
           </h1>
 
-          <p className="mt-7 text-[17px] sm:text-[19px] text-neutral-400 max-w-xl mx-auto leading-relaxed">
+          <p className="mt-5 sm:mt-7 text-[15px] sm:text-[17px] md:text-[19px] text-neutral-400 max-w-xl mx-auto leading-relaxed">
             Ask anything and get a clear, sourced answer in seconds — then keep the conversation going.
           </p>
 
           <form
             onSubmit={onSubmit}
-            className="group mt-10 flex items-center gap-2 max-w-xl mx-auto bg-neutral-900/80 border border-white/10 rounded-2xl px-4 py-3 shadow-2xl shadow-black/40 focus-within:border-cyan-500/60 focus-within:ring-4 focus-within:ring-cyan-500/10 transition-all"
+            className="group mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 max-w-xl mx-auto bg-neutral-900/80 border border-white/10 rounded-2xl px-3 sm:px-4 py-3 shadow-2xl shadow-black/40 focus-within:border-cyan-500/60 focus-within:ring-4 focus-within:ring-cyan-500/10 transition-all"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-500 shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-neutral-500 shrink-0 hidden sm:block">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ask anything…"
-              className="flex-1 bg-transparent text-[15px] text-neutral-200 placeholder-neutral-500 outline-none"
+              className="flex-1 bg-transparent text-[14px] sm:text-[15px] text-neutral-200 placeholder-neutral-500 outline-none min-w-0"
             />
-            <button type="submit" className="shrink-0 px-4 py-1.5 rounded-xl text-[14px] font-semibold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors">
+            <button type="submit" className="shrink-0 px-4 py-2 sm:py-1.5 rounded-xl text-[14px] font-semibold text-white bg-cyan-600 hover:bg-cyan-500 transition-colors">
               Search
             </button>
           </form>
@@ -113,7 +152,7 @@ export default function Home() {
         </div>
 
         {/* ── Product preview mockup (show, don't tell) ── */}
-        <div className="max-w-3xl mx-auto px-6 pb-24">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24">
           <div
             className="rounded-2xl border border-white/10 bg-neutral-900/60 backdrop-blur shadow-2xl shadow-black/50 overflow-hidden"
             style={{ animation: 'floaty 7s ease-in-out infinite' }}
@@ -158,9 +197,9 @@ export default function Home() {
       </section>
 
       {/* ─────────── FEATURES (bento) ─────────── */}
-      <section id="features" className="max-w-6xl mx-auto px-6 py-12">
+      <section id="features" className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <div className="max-w-xl mb-12">
-          <h2 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white tracking-tight">
             Built for people who ask questions.
           </h2>
           <p className="mt-3 text-[16px] text-neutral-400">
@@ -168,9 +207,9 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3 md:auto-rows-[200px]">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 md:auto-rows-[200px]">
           {/* big feature */}
-          <div className="md:col-span-2 md:row-span-2 rounded-2xl border border-white/10 bg-gradient-to-br from-neutral-900 to-neutral-900/30 p-7 flex flex-col justify-between">
+          <div className="sm:col-span-2 md:col-span-2 md:row-span-2 rounded-2xl border border-white/10 bg-gradient-to-br from-neutral-900 to-neutral-900/30 p-5 sm:p-7 flex flex-col justify-between">
             <div className="w-11 h-11 rounded-xl bg-cyan-500/10 flex items-center justify-center">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#20b8cd" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
@@ -208,11 +247,11 @@ export default function Home() {
       </section>
 
       {/* ─────────── HOW IT WORKS ─────────── */}
-      <section id="how" className="max-w-6xl mx-auto px-6 py-16">
-        <h2 className="text-3xl sm:text-4xl font-semibold text-white tracking-tight text-center mb-14">
+      <section id="how" className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white tracking-tight text-center mb-10 sm:mb-14">
           Three steps. Seconds, not tabs.
         </h2>
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-6 sm:gap-8 sm:grid-cols-2 md:grid-cols-3">
           {[
             { n: '01', t: 'Ask in plain language', d: 'Type your question the way you\u2019d ask a friend. No keywords, no operators.' },
             { n: '02', t: 'We search the live web', d: 'Behind the scenes we read multiple sources and pull the relevant facts.' },
@@ -228,10 +267,10 @@ export default function Home() {
       </section>
 
       {/* ─────────── CTA ─────────── */}
-      <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-600/20 via-neutral-900 to-neutral-900 p-12 text-center">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-br from-cyan-600/20 via-neutral-900 to-neutral-900 p-8 sm:p-12 text-center">
           <div className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-cyan-500/20 blur-3xl" />
-          <h2 className="relative text-3xl sm:text-4xl font-semibold text-white tracking-tight">Start asking today</h2>
+          <h2 className="relative text-2xl sm:text-3xl md:text-4xl font-semibold text-white tracking-tight">Start asking today</h2>
           <p className="relative mt-3 text-[16px] text-neutral-300">Create an account and run your first search in under a minute.</p>
           <Link
             to="/register"
@@ -244,7 +283,7 @@ export default function Home() {
 
       {/* ─────────── FOOTER ─────────── */}
       <footer className="border-t border-white/5">
-        <div className="max-w-6xl mx-auto px-6 py-12 grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+        {/* <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12 grid gap-6 sm:gap-8 grid-cols-2 md:grid-cols-4">
           <div className="sm:col-span-2 md:col-span-1">
             <div className="flex items-center gap-2">
               <Logo size={22} />
@@ -269,11 +308,11 @@ export default function Home() {
               </ul>
             </div>
           ))}
-        </div>
+        </div> */}
         <div className="border-t border-white/5">
-          <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-[12px] text-neutral-600">© 2026 Inquiro · Built with React &amp; Tailwind</p>
-            <p className="text-[12px] text-neutral-600">A personal project, not affiliated with Perplexity AI.</p>
+            <p className="text-[12px] text-neutral-600">A personal project.</p>
           </div>
         </div>
       </footer>

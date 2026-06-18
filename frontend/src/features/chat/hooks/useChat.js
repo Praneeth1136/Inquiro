@@ -1,5 +1,5 @@
 import { connectSocket } from "../services/chat.socket";
-import { sendMessage, getChats, getMessages, deleteChat } from "../services/chat.api.js";
+import { sendMessage, getChats, getMessages, deleteChat, renameChat } from "../services/chat.api.js";
 import {
     setChats, setCurrentChatId, removeChat, setIsLoading, setOpeningChat, setError,
     addNewMessage, CreateNewChat, addMessages,
@@ -114,11 +114,33 @@ export const useChat = () => {
         }
     }
 
+    async function handleRenameChat(chatId, title) {
+        try {
+            await renameChat(chatId, title);
+            dispatch(updateChatTitle({ chatId, title }));
+        } catch (err) {
+            dispatch(setError(err?.response?.data?.message || "Failed to rename chat"));
+        }
+    }
+
+    async function handleDeleteAllChats() {
+        try {
+            await import("../services/chat.api.js").then(m => m.deleteAllChats());
+            // Need a way to clear all chats in Redux... We can just setChats({})
+            dispatch(setChats({}));
+            dispatch(setCurrentChatId(null));
+        } catch (err) {
+            dispatch(setError(err?.response?.data?.message || "Failed to delete all chats"));
+        }
+    }
+
     return {
         initializeSocketConnection,
         handleSendMessage,
         handleGetChats,
         handleOpenChat,
-        handleDeleteChat
+        handleDeleteChat,
+        handleRenameChat,
+        handleDeleteAllChats
     };
 };

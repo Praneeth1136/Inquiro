@@ -1,6 +1,7 @@
 import { useDispatch } from 'react-redux';
 import { setUser, setLoading, setError } from '../auth.slice';
 import { register, login, logout, resendVerification, getMe } from '../services/auth.api';
+import { disconnectSocket } from '../../chat/services/chat.socket';
 
 export function useAuth() {
   const dispatch = useDispatch();
@@ -49,6 +50,7 @@ export function useAuth() {
   async function handleLogout() {
     try {
       await logout();
+      disconnectSocket();
     } catch (error) {
       dispatch(setError(error.response?.data?.message || 'Logout failed'));
     } finally {

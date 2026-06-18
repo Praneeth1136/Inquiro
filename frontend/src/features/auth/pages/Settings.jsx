@@ -1,6 +1,7 @@
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/userAuth';
+import { useChat } from '../../chat/hooks/useChat';
 
 const Logo = ({ size = 22 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -22,6 +23,7 @@ const formatDate = (d) => {
 export default function Settings() {
   const user = useSelector((state) => state.auth.user);
   const { handleLogout } = useAuth();
+  const { handleDeleteAllChats } = useChat();
   const navigate = useNavigate();
 
   const onLogout = async () => {
@@ -40,7 +42,7 @@ export default function Settings() {
 
       {/* top bar */}
       <header className="relative z-10 border-b border-white/5">
-        <div className="max-w-2xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <Link to="/app" className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-[14px]">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Back to app
@@ -52,18 +54,18 @@ export default function Settings() {
         </div>
       </header>
 
-      <main className="relative z-10 max-w-2xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-semibold text-white tracking-tight animate-fade-in-up">Settings</h1>
+      <main className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight animate-fade-in-up">Settings</h1>
         <p className="mt-1.5 text-[15px] text-neutral-400 animate-fade-in-up" style={{animationDelay: '0.06s'}}>Manage your account.</p>
 
         {/* Profile card */}
-        <section className="mt-8 rounded-2xl border border-white/10 bg-neutral-900/50 p-6 animate-fade-in-up" style={{animationDelay: '0.12s'}}>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-emerald-600 flex items-center justify-center text-white text-lg font-semibold shrink-0">
+        <section className="mt-6 sm:mt-8 rounded-2xl border border-white/10 bg-neutral-900/50 p-4 sm:p-6 animate-fade-in-up" style={{animationDelay: '0.12s'}}>
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-cyan-500 to-emerald-600 flex items-center justify-center text-white text-base sm:text-lg font-semibold shrink-0">
               {me?.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
+            <div className="min-w-0 text-center sm:text-left">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
                 <p className="text-[16px] font-semibold text-white truncate">{me?.username || 'User'}</p>
                 {me?.verified ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-emerald-400 bg-emerald-400/10">
@@ -95,8 +97,25 @@ export default function Settings() {
         </section>
 
         {/* Account actions */}
-        <section className="mt-6 rounded-2xl border border-white/10 bg-neutral-900/50 p-6 animate-fade-in-up" style={{animationDelay: '0.18s'}}>
-          <p className="text-[13px] font-semibold text-neutral-300 mb-1">Account</p>
+        <section className="mt-4 sm:mt-6 rounded-2xl border border-white/10 bg-neutral-900/50 p-4 sm:p-6 animate-fade-in-up" style={{animationDelay: '0.18s'}}>
+          <p className="text-[13px] font-semibold text-neutral-300 mb-1">Clear Chat History</p>
+          <p className="text-[13px] text-neutral-500 mb-4">Permanently delete all your chat conversations.</p>
+          <button
+            onClick={async () => {
+              if (window.confirm('Are you sure you want to permanently delete all your chats? This action cannot be undone.')) {
+                await handleDeleteAllChats();
+                navigate('/app');
+              }
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[14px] font-medium text-red-400 border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 transition-colors mb-6"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Delete All Chats
+          </button>
+
+          <div className="h-px bg-white/5 mb-6" />
+
+          <p className="text-[13px] font-semibold text-neutral-300 mb-1">Log Out</p>
           <p className="text-[13px] text-neutral-500 mb-4">Sign out of your account on this device.</p>
           <button
             onClick={onLogout}
