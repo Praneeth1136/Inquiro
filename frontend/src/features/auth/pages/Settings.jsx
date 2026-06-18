@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { setUser } from '../auth.Slice';
+import { setUser } from '../auth.slice';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/userAuth';
 import { updateSystemPrompt } from '../services/auth.api';
